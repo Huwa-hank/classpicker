@@ -21,6 +21,9 @@ import { MessageCircleWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useReactToPrint } from "react-to-print";
 
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 type ScheduleData = {
   title: string;
   place?: string;
@@ -63,6 +66,21 @@ const ClasstablePage: FC = () => {
     'C': '13',
     'D': '14'
   }
+
+  const generatePDF = async () => {
+    const input = document.getElementById("pdf-content"); 
+    if (!input) return;
+
+    const canvas = await html2canvas(input, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgWidth = 210;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width; 
+
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    pdf.save(`ClassTable_${id}.pdf`); 
+  };
 
   const generateRange = (arr) => {
     arr = arr.map((item) => {
@@ -170,10 +188,13 @@ const ClasstablePage: FC = () => {
           <h2>已選擇的課程</h2>
           <ClassTable
             courses={selectedClasses}
-            totalPages={1}
+            currentPage={1}
+            itemsPerPage={10}
+            totalPages={Math.ceil(selectedClasses.length / 10)}
+            handlePageChange={(pageNumber) => console.log(`Navigated to page ${pageNumber}`)}
           />
 
-          <div ref={contentRef} className="max-w-[768px] mx-auto mt-4 print:h-auto" id="classtable">
+          <div id="pdf-content" ref={contentRef} className="max-w-[768px] mx-auto mt-4 print:h-auto" id="classtable">
             <TheClassTable
               selectedTag={selectedTag}
               scheduleConflict={scheduleConflict}
@@ -187,6 +208,9 @@ const ClasstablePage: FC = () => {
               classData={classData}
             />
           </div>
+          <button onClick={generatePDF} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+            下載課表 PDF
+          </button>
         </div>
       </div>
     </SidebarProvider>
